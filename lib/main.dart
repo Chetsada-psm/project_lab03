@@ -1,36 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
-  MyApp({super.key});
-
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
   int total = 0;
+  final List<Item> items = [
+    Item(title: "iPad", price: 19000),
+    Item(title: "iPad mini", price: 23000),
+    Item(title: "iPad Air", price: 29000),
+    Item(title: "iPad Pro", price: 32000),
+  ];
 
-  void incrementNumber(int count, int price) {
+  void incrementNumber(Item item, int delta) {
     setState(() {
-      total += price;
+      total += delta;
     });
   }
 
   void resetAll() {
     setState(() {
       total = 0;
+      for (var item in items) {
+        item.resetCount();
+      }
     });
-    for (var key in _shoppingItemKeys) {
-      key.currentState?.resetCount();
-    }
   }
-
-  final List<GlobalKey<_ShoppingItemState>> _shoppingItemKeys = [];
 
   String formatCurrency(int amount) {
     return amount.toString().replaceAllMapped(
@@ -39,8 +40,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    _shoppingItemKeys.clear();  // Clear the list before adding new keys
-
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
@@ -51,39 +50,17 @@ class _MyAppState extends State<MyApp> {
         body: Column(
           children: [
             Expanded(
-              child: Column(
-                children: [
-                  ShoppingItem(
-                    key: _addNewKey(),
-                    title: "iPad",
-                    price: 19000,
-                    onIncrement: (int count, int price) {
-                      incrementNumber(count, price);
+              child: ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return ShoppingItem(
+                    item: item,
+                    onIncrement: (item, delta) {
+                      incrementNumber(item, delta);
                     },
-                  ),
-                  ShoppingItem(
-                    key: _addNewKey(),
-                    title: "iPad mini",
-                    price: 23000,
-                    onIncrement: (int count, int price) {
-                      incrementNumber(count, price);
-                    },
-                  ),ShoppingItem(
-                    key: _addNewKey(),
-                    title: "iPad Air",
-                    price: 29000,
-                    onIncrement: (int count, int price) {
-                      incrementNumber(count, price);
-                    },
-                  ),ShoppingItem(
-                    key: _addNewKey(),
-                    title: "iPad Pro",
-                    price: 32000,
-                    onIncrement: (int count, int price) {
-                      incrementNumber(count, price);
-                    },
-                  ),
-                ],
+                  );
+                },
               ),
             ),
             Row(
@@ -121,39 +98,34 @@ class _MyAppState extends State<MyApp> {
       ),
     );
   }
+}
 
-  GlobalKey<_ShoppingItemState> _addNewKey() {
-    final key = GlobalKey<_ShoppingItemState>();
-    _shoppingItemKeys.add(key);
-    return key;
+class Item {
+  final String title;
+  final int price;
+  int count = 0;
+
+  Item({required this.title, required this.price});
+
+  void resetCount() {
+    count = 0;
   }
 }
 
 class ShoppingItem extends StatefulWidget {
-  final String title;
-  final int price;
-  final Function(int count, int price) onIncrement;
+  final Item item;
+  final Function(Item item, int delta) onIncrement;
 
   ShoppingItem({
-    required Key key,
-    required this.title,
-    required this.price,
+    required this.item,
     required this.onIncrement,
-  }) : super(key: key);
+  });
 
   @override
   State<ShoppingItem> createState() => _ShoppingItemState();
 }
 
 class _ShoppingItemState extends State<ShoppingItem> {
-  int count = 0;
-
-  void resetCount() {
-    setState(() {
-      count = 0;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -165,10 +137,10 @@ class _ShoppingItemState extends State<ShoppingItem> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.title,
+                widget.item.title,
                 style: const TextStyle(fontSize: 28),
               ),
-              Text("${widget.price.toString()} ฿"),
+              Text("${widget.item.price.toString()} ฿"),
             ],
           ),
         ),
@@ -176,11 +148,11 @@ class _ShoppingItemState extends State<ShoppingItem> {
           children: [
             IconButton(
               onPressed: () {
-                if (count > 0) {
+                if (widget.item.count > 0) {
                   setState(() {
-                    count--;
+                    widget.item.count--;
                   });
-                  widget.onIncrement(count, -widget.price);
+                  widget.onIncrement(widget.item, -widget.item.price);
                 }
               },
               icon: const Icon(Icons.remove),
@@ -189,7 +161,7 @@ class _ShoppingItemState extends State<ShoppingItem> {
               width: 10,
             ),
             Text(
-              count.toString(),
+              widget.item.count.toString(),
               style: const TextStyle(fontSize: 28),
             ),
             const SizedBox(
@@ -198,9 +170,9 @@ class _ShoppingItemState extends State<ShoppingItem> {
             IconButton(
               onPressed: () {
                 setState(() {
-                  count++;
+                  widget.item.count++;
                 });
-                widget.onIncrement(count, widget.price);
+                widget.onIncrement(widget.item, widget.item.price);
               },
               icon: const Icon(Icons.add),
             ),
